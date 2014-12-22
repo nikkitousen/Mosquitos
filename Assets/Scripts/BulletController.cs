@@ -5,6 +5,7 @@ public class BulletController : MonoBehaviour {
 	
 	public float rotationSpeed;
 	
+	// Flags
 	private bool onPool = false;
 	
 	// References
@@ -37,5 +38,10 @@ public class BulletController : MonoBehaviour {
 		}
 	}
 	
-	//public void SetOutsidePool
+	public void ShootBullet(Vector3 startingPos, Vector3 force) {
+		transform.position = startingPos;
+		rigidbody2D.velocity = Vector3.zero;
+		rigidbody2D.AddForce(force);
+		onPool = false;
+	}
 }

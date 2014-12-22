@@ -49,15 +49,11 @@ public class CannonController : MonoBehaviour {
 			Vector3 bulletPos = calculateBulletPos();
 			GameObject newBullet;
 			if(bulletPool.Count == 0) {
-				newBullet = Instantiate(bulletPrefab, 
-										bulletPos, 
-									 	Quaternion.identity) as GameObject;
+				newBullet = Instantiate(bulletPrefab) as GameObject;
 			} else {
 				newBullet = bulletPool.Pop();
-				newBullet.rigidbody2D.velocity = Vector3.zero;
-				newBullet.transform.position = bulletPos;
 			}
-			newBullet.rigidbody2D.AddForce(force);
+			newBullet.GetComponent<BulletController>().ShootBullet(bulletPos, force);
 			
 			// Reset flag
 			readyToShoot = false;
