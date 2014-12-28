@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 public class CannonController : MonoBehaviour {
 
-	public float radius;
+	public float grabRadius;
 	public float shootForce;
 	public float bulletOffset;
 	public float handleReturnSpeed;
@@ -19,13 +19,21 @@ public class CannonController : MonoBehaviour {
 	// References
 	private Transform handle;
 	private Transform handleGrabPoint;
+	private Transform handleInitialGrabPoint;
+	private Transform handleMinPos;
+	private Transform handleMaxPos;
 	
 	void Awake() {
-		handle = transform.Find ("CannonHandle");
-		handleGrabPoint = transform.Find ("HandleGrabPoint");
+		handle = transform.Find ("Handle");
+		handleGrabPoint = GameObject.Find ("HandleGrabPoint").transform;
+		handleInitialGrabPoint = transform.Find ("HandleInitialGrabPoint");
+		handleMinPos = transform.Find ("HandleMinPos");
+		handleMaxPos = transform.Find ("HandleMaxPos");
+		
 	}
 	
 	void Update () {
+	
 		// Get the current position of the mouse, relative to the coordinate system
 		Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
 		mousePos.z = 0;
@@ -35,7 +43,7 @@ public class CannonController : MonoBehaviour {
 			
 		if(Input.GetMouseButtonDown(0)) {
 			// If user pressed close enough to the center of the cannon, remember it
-			if(Vector3.Distance(mousePos, handleGrabPoint.position) <= radius) {
+			if(Vector3.Distance(mousePos, handleGrabPoint.position) <= grabRadius) {
 				readyToShoot = true;
 				handleReturning = false; // If handle was going back, cancel it
 			}
@@ -63,11 +71,11 @@ public class CannonController : MonoBehaviour {
 		}
 		
 		// If the handle is returning to the original position, move it accordingly
-		if(handleReturning) {
-			handle.position = Vector3.Lerp(handle.position,
-									       Vector3.zero,
-									   	   handleReturnSpeed * Time.deltaTime);
-		}
+//		if(handleReturning) {
+//			handle.position = Vector3.Lerp(handle.position,
+//									       Vector3.zero,
+//									   	   handleReturnSpeed * Time.deltaTime);
+//		}
 		
 	}
 	
@@ -88,12 +96,13 @@ public class CannonController : MonoBehaviour {
 		
 		// We only allow the handle to move below its original position, and
 		// up to a maximum distance
-		if (mousePos.sqrMagnitude >= handleGrabPoint.position.sqrMagnitude) {
-			float handleNewYPos = Vector3.Distance(mousePos, handleGrabPoint.position);
-			if(handleNewYPos <= 1.2)
-				handle.localPosition = new Vector3(0, -handleNewYPos, 0);
+		if (mousePos.sqrMagnitude >= handleInitialGrabPoint.position.sqrMagnitude) {
+			float handleNewLocalYPos = -Vector3.Distance(mousePos, handleInitialGrabPoint.position);
+			if(handleNewLocalYPos <= handleMinPos.localPosition.y
+			&& handleNewLocalYPos >= handleMaxPos.localPosition.y) {
+				handle.localPosition = new Vector3(0, handleNewLocalYPos, 0);
+			}
 		}
-		
 		
 	}
 	
