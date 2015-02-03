@@ -43,7 +43,9 @@ public class SpawnEnemies : MonoBehaviour {
 									   .transform;
 		} else {
 			newMosquito = EnemyPool.Pop();
-			newMosquito.position = spawnPosition;
+//			newMosquito.position = spawnPosition;
+//			newMosquito.FindChild("MosquitoBody").renderer.enabled = true;
+			newMosquito.GetComponentInParent<EnemyController>().Respawn(spawnPosition);
 		}
 		
 		// If the new mosquito appears in the left half of the screen, flip it

@@ -8,10 +8,14 @@ public class CannonController : MonoBehaviour {
 	public float bulletOffset;
 	public float handleReturnSpeed;
 	public GameObject bulletPrefab;
+	public float epsilonTimeForShoot;
+	
+	private float lastTimeAtStartPoint = 0f;
+	private float lastTimeAtEndPoint = 0f;
 	
 	// Flags
 	private bool readyToShoot = false;
-	private bool handleReturning = false;
+	private bool handleIsGrabbed = false;
 	
 	// Pool
 	private Stack<GameObject> bulletPool = new Stack<GameObject>();
@@ -22,6 +26,8 @@ public class CannonController : MonoBehaviour {
 	private Transform handleInitialGrabPoint;
 	private Transform handleMinPos;
 	private Transform handleMaxPos;
+	private Transform handleShootStartPoint;
+	private Transform handleShootEndPoint;
 	
 	void Awake() {
 		handle = transform.Find ("Handle");
@@ -29,7 +35,8 @@ public class CannonController : MonoBehaviour {
 		handleInitialGrabPoint = transform.Find ("HandleInitialGrabPoint");
 		handleMinPos = transform.Find ("HandleMinPos");
 		handleMaxPos = transform.Find ("HandleMaxPos");
-		
+		handleShootStartPoint = transform.Find ("HandleShootStartPoint");
+		handleShootEndPoint = transform.Find ("HandleShootEndPoint");
 	}
 	
 	void Update () {
@@ -41,47 +48,77 @@ public class CannonController : MonoBehaviour {
 		// Adjust the position of the cannon
 		drawCannon(mousePos);	
 			
+//		if(Input.GetMouseButtonDown(0)) {
+//			// If user pressed close enough to the center of the cannon, remember it
+//			if(Vector3.Distance(mousePos, handleGrabPoint.position) <= grabRadius) {
+//				readyToShoot = true;
+//			}
+//		} else if (Input.GetMouseButtonUp(0) && readyToShoot) {
+//			// If user released and had already pressed in a valid position, shoot
+//			
+//			// First, calculate the force of the shot
+//			Vector3 force = (-1f * handle.position) * shootForce;
+//			
+//			// Then, instantiate a bullet prefab, and apply the force
+//			Vector3 bulletPos = calculateBulletPos();
+//			GameObject newBullet;
+//			if(bulletPool.Count == 0) {
+//				newBullet = Instantiate(bulletPrefab) as GameObject;
+//			} else {
+//				newBullet = bulletPool.Pop();
+//			}
+//			newBullet.GetComponent<BulletController>().ShootBullet(bulletPos, force);
+//			
+//			// Reset flag
+//			readyToShoot = false;
+//		}
+		
 		if(Input.GetMouseButtonDown(0)) {
-			// If user pressed close enough to the center of the cannon, remember it
+			// If user pressed close enough to the handle grab point, remember it
 			if(Vector3.Distance(mousePos, handleGrabPoint.position) <= grabRadius) {
-				readyToShoot = true;
-				handleReturning = false; // If handle was going back, cancel it
+				handleIsGrabbed = true;
 			}
-		} else if (Input.GetMouseButtonUp(0) && readyToShoot) {
-			// If user released and had already pressed in a valid position, shoot
-			
-			// First, calculate the force of the shot
-			Vector3 force = (-1f * handle.position) * shootForce;
-			
-			// Then, instantiate a bullet prefab, and apply the force
-			Vector3 bulletPos = calculateBulletPos();
-			GameObject newBullet;
-			if(bulletPool.Count == 0) {
-				newBullet = Instantiate(bulletPrefab) as GameObject;
-			} else {
-				newBullet = bulletPool.Pop();
-			}
-			newBullet.GetComponent<BulletController>().ShootBullet(bulletPos, force);
-			
-			// Reset flag
-			readyToShoot = false;
-			
-			// Handle now is returning
-			handleReturning = true;
 		}
 		
-		// If the handle is returning to the original position, move it accordingly
-//		if(handleReturning) {
-//			handle.position = Vector3.Lerp(handle.position,
-//									       Vector3.zero,
-//									   	   handleReturnSpeed * Time.deltaTime);
-//		}
+		if(Input.GetMouseButtonUp(0)) {
+			handleIsGrabbed = false;
+			readyToShoot = false;
+		}
+		
+		if(handleIsGrabbed) {
+			if(handle.position.y < handleShootStartPoint.position.y) {
+				lastTimeAtStartPoint = Time.timeSinceLevelLoad;
+				readyToShoot = true;
+			}
+			if(handle.position.y > handleShootEndPoint.position.y) {
+				lastTimeAtEndPoint = Time.timeSinceLevelLoad;
+				if(readyToShoot) {
+					//First, calculate the force of the shot
+					float forceScalar = 1f/(lastTimeAtEndPoint - lastTimeAtStartPoint) * shootForce;
+					Vector3 forceVector = -1f * handle.position.normalized * forceScalar;
+					
+					// Then, instantiate a bullet prefab, and apply the force
+					Vector3 bulletPos = calculateBulletPos();
+					GameObject newBullet;
+					if(bulletPool.Count == 0) {
+						newBullet = Instantiate(bulletPrefab) as GameObject;
+					} else {
+						newBullet = bulletPool.Pop();
+					}
+					newBullet.GetComponent<BulletController>().ShootBullet(bulletPos, forceVector);
+					
+					readyToShoot = false;
+				}
+			}
+		}
+		
 		
 	}
 	
 	// Manages the rotation of the cannon's sprite
 	void drawCannon(Vector3 mousePos) {
-		if(!readyToShoot) return; // Do not change if not pressed
+//		if(!readyToShoot) return; // Do not change if not pressed
+		if(!handleIsGrabbed) return; // Do not change if not pressed
 		
 		// Get the angle between the X axis and the position of the mouse
 		float angle = Vector3.Angle(Vector3.right, mousePos);
